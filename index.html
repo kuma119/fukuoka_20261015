@@ -3591,7 +3591,18 @@
         allButton.textContent = current === 'all' ? '날짜별로 보기' : '5일 전체 보기';
         const anchor = current === 'all' ? 'all' : 'day' + current;
         try { history.replaceState(null, '', '#' + anchor); } catch (e) { }
-        if (shouldScroll) { document.querySelector('.sticky-nav').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
+        if (shouldScroll) {
+          // 날짜가 바뀐 뒤 레이아웃을 반영하고, 일정 시작점을 고정 메뉴 바로 아래에 맞춥니다.
+          // sticky 메뉴 자체에 scrollIntoView를 호출하면 깊이 내려간 화면에서 이동하지 않을 수 있습니다.
+          requestAnimationFrame(() => {
+            const nav = document.querySelector('.sticky-nav');
+            const start = document.querySelector('.view-help') || document.getElementById('itinerary');
+            if (!start) return;
+            const navHeight = nav ? nav.getBoundingClientRect().height : 0;
+            const top = start.getBoundingClientRect().top + window.scrollY - navHeight;
+            window.scrollTo({ top: Math.max(0, Math.round(top)), left: 0, behavior: 'instant' });
+          });
+        }
       }
       document.querySelectorAll('[data-select]').forEach(button => button.addEventListener('click', () => selectDay(button.dataset.select)));
       allButton.addEventListener('click', () => selectDay(current === 'all' ? '1' : 'all'));
