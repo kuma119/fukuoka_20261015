@@ -3582,15 +3582,18 @@
       let current = '1';
       let expanded = false;
       let toastTimer;
-      function selectDay(day, shouldScroll = true) {
+      function selectDay(day, shouldScroll = true, updateHash = true) {
         current = String(day);
         sections.forEach(s => { s.hidden = current !== 'all' && s.dataset.day !== current; });
         tabs.forEach(t => { const active = t.dataset.select === current; t.classList.toggle('active', active); t.setAttribute('aria-pressed', String(active)); });
         allButton.classList.toggle('selected', current === 'all');
         allButton.setAttribute('aria-pressed', String(current === 'all'));
         allButton.textContent = current === 'all' ? '날짜별로 보기' : '5일 전체 보기';
-        const anchor = current === 'all' ? 'all' : 'day' + current;
-        try { history.replaceState(null, '', '#' + anchor); } catch (e) { }
+        // 첫 화면은 주소를 유지하고, 날짜를 직접 선택할 때만 해시를 갱신합니다.
+        if (updateHash) {
+          const anchor = current === 'all' ? 'all' : 'day' + current;
+          try { history.replaceState(null, '', '#' + anchor); } catch (e) { }
+        }
         if (shouldScroll) {
           // 날짜가 바뀐 뒤 레이아웃을 반영하고, 일정 시작점을 고정 메뉴 바로 아래에 맞춥니다.
           // sticky 메뉴 자체에 scrollIntoView를 호출하면 깊이 내려간 화면에서 이동하지 않을 수 있습니다.
@@ -3633,7 +3636,17 @@
       document.getElementById('printTrip').addEventListener('click', () => window.print());
       const hash = location.hash.replace('#', '');
       const initial = hash === 'all' ? 'all' : /^day[1-5]$/.test(hash) ? hash.slice(3) : '1';
-      selectDay(initial, false);
+      selectDay(initial, false, false);
+      // 해시 없는 주소로 열면 이전 스크롤 위치 대신 페이지 맨 위에서 시작합니다.
+      // #day3 등 날짜를 지정한 링크는 기존처럼 해당 날짜로 열립니다.
+      if (!location.hash) {
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        const showPageTop = () => {
+          if (!location.hash) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        };
+        showPageTop();
+        window.addEventListener('pageshow', showPageTop);
+      }
     })();
   </script>
   <dialog id="tripMapViewer" class="map-viewer" aria-labelledby="mapViewerTitle" aria-describedby="mapViewerNote">
